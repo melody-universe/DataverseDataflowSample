@@ -74,7 +74,6 @@ namespace DotNetFramework
                 results = taskRunner.Run(service => service.RetrieveMultiple(query))
                     .GetAwaiter()
                     .GetResult();
-                Console.WriteLine($"Retrieved {results.Entities.Count} contacts.");
                 yield return results.Entities;
                 query.PageInfo.PagingCookie = results.PagingCookie;
                 query.PageInfo.PageNumber++;
