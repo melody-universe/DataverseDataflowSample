@@ -2,6 +2,7 @@
 using Microsoft.Xrm.Sdk.Query;
 using Microsoft.Xrm.Tooling.Connector;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Threading.Tasks;
@@ -13,7 +14,8 @@ namespace DotNetFramework
     {
         static void Main(string[] _)
         {
-            var connectionString = ConfigurationManager.ConnectionStrings["Dataverse"].ConnectionString;
+            var connectionString =
+                ConfigurationManager.ConnectionStrings["Dataverse"].ConnectionString;
             var service = new CrmServiceClient(connectionString);
             var taskOrchestrator = new OrganizationServiceTaskOrchestrator(service);
             var queryRunner = new DataverseQueryRunner(taskOrchestrator);
@@ -21,8 +23,8 @@ namespace DotNetFramework
             WriteTimeSpan("Initialized runners");
             CreateContacts(taskOrchestrator);
             WriteTimeSpan("Created contacts");
-            WriteContacts(queryRunner);
-            WriteTimeSpan("Wrote contacts");
+            CountContacts(queryRunner);
+            WriteTimeSpan("Counted contacts");
             DeleteContacts(taskOrchestrator, queryRunner);
             WriteTimeSpan("Deleted contacts");
         }
@@ -53,21 +55,14 @@ namespace DotNetFramework
             Task.WaitAll(tasks.ToArray());
         }
 
-        static void WriteContacts(DataverseQueryRunner queryRunner)
+        static void CountContacts(DataverseQueryRunner queryRunner)
         {
             var contactsBlock = RetrieveContacts(queryRunner);
-            contactsBlock.ForEach(
-                    contact =>
-                        Console.WriteLine(
-                            $"Retrieved contact {contact.GetAttributeValue<string>("firstname")}"
-                        )
-                )
-                .GetAwaiter()
-                .GetResult();
+            var contacts = new ConcurrentBag<Entity>();
+            contactsBlock.ForEach(contacts.Add).GetAwaiter().GetResult();
+            Console.WriteLine($"There are a total of {contacts.Count} contacts.");
         }
 
-        public static object NumberOfContactsDeletedLock = new object();
-        public static int NumberOfContactsDeleted = 0;
         static void DeleteContacts(
             OrganizationServiceTaskOrchestrator taskOrchestrator,
             DataverseQueryRunner queryRunner
@@ -77,14 +72,7 @@ namespace DotNetFramework
             contactsBlock.ForEach(
                     contact =>
                         taskOrchestrator.Run(
-                            service =>
-                            {
-                                service.Delete(contact.LogicalName, contact.Id);
-                                lock (NumberOfContactsDeletedLock)
-                                {
-                                    NumberOfContactsDeleted++;
-                                }
-                            }
+                            service => service.Delete(contact.LogicalName, contact.Id)
                         )
                 )
                 .GetAwaiter()

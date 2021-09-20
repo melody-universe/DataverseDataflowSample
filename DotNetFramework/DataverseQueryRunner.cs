@@ -71,12 +71,6 @@ namespace DotNetFramework
             EntityCollection results;
             do
             {
-                lock (Program.NumberOfContactsDeletedLock)
-                {
-                    Console.WriteLine(
-                        $"Retrieving page {query.PageInfo.PageNumber} ({Program.NumberOfContactsDeleted} contacts deleted)"
-                    );
-                }
                 results = taskRunner.Run(service => service.RetrieveMultiple(query))
                     .GetAwaiter()
                     .GetResult();
