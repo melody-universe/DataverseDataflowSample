@@ -2,9 +2,9 @@
 using Microsoft.Xrm.Sdk.Query;
 using Microsoft.Xrm.Tooling.Connector;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -58,9 +58,9 @@ namespace DotNetFramework
         static void CountContacts(DataverseQueryRunner queryRunner)
         {
             var contactsBlock = RetrieveContacts(queryRunner);
-            var contacts = new ConcurrentBag<Entity>();
-            contactsBlock.ForEach(contacts.Add).GetAwaiter().GetResult();
-            Console.WriteLine($"There are a total of {contacts.Count} contacts.");
+            var counter = 0;
+            contactsBlock.ForEach(_ => Interlocked.Increment(ref counter)).GetAwaiter().GetResult();
+            Console.WriteLine($"There are a total of {counter} contacts.");
         }
 
         static void DeleteContacts(
