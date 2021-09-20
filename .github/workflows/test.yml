@@ -1,0 +1,26 @@
+name: .NET
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1
+    - name: Setup NuGet
+      uses: nuget/setup-nuget@v1
+    - name: Restore dependencies
+      run: nuget restore DataverseDataflowSample.sln
+    - name: Build
+      run: msbuild DataverseDataflowSample.sln /p:Configuration=Release
+    - name: List Directory Contents
+      run: |
+        ls -R
