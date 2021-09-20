@@ -21,6 +21,13 @@ jobs:
       run: nuget restore DataverseDataflowSample.sln
     - name: Build
       run: msbuild DataverseDataflowSample.sln /p:Configuration=Release
-    - name: List Directory Contents
+    - name: Configure
       run: |
-        ls -R
+        $configPath = Resolve-Path DotNetFramework/bin/Release/DotNetFramework.exe.config
+        $xml = New-Object xml
+        $xml.Load($configPath)
+        $connectionStringNode = $xml.SelectSingleNode("/configuration/connectionStrings/add[@name='Dataverse']")
+        $connectionStringNode.SetAttribute("connectionString", "${{ secrets.CONNECTION_STRING }}")
+        $xml.Save($configPath)
+    - name: Run Console App
+      run: DotNetFramework/bin/Release/DotNetFramework.exe
